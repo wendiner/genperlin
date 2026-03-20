@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Perlin Noise Demo</title>
+    <style>
+      body {
+        background-color: #000;
+      }
+      
+      h1 {
+        color: #fff;
+      }
+      
+      #display {
+        border: 1px solid #fff;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Perlin Noise Demo</h1>
+    <hr>
+    <canvas id="display" width="512" height="512"></canvas><br>
+    
+    <script src="./perlin_noise.js"></script>
+    <script>
+      (async function() {
+        let cartToPol = (x, y) =>
+          Math.atan(y/x) + (x < 0 ? Math.PI / 2 : 0);
+        let rotationScale = Math.PI / 8;
+        let oldData = {};
+        
+        while (true) {
+          oldData = genPerlinNoise(512, 512, 10, 10, oldData.hasOwnProperty("corners") ? oldData.corners : false);
+          oldData.corners = oldData.corners.map(e => {
+            let theta = cartToPol(e[0], e[1]) + Math.random() * rotationScale - rotationScale / 2;
+            return [Math.cos(theta), Math.sin(theta)];
+          });
+          
+          let scale = (function() { // find the largest magnitude so our colors are bright enough
+            let record = 0;
+            for (let i = 0; i < oldData.pixels.length; i++) {
+            let option = Math.abs(oldData.pixels[i].vertGrad);
+            if (option > record)
+              record = option;
+            }
+            return record;
+          })();
+          
+          let ctx = document.querySelector("#display").getContext("2d");
+          let img = ctx.createImageData(512, 512); // red = positive, blue = negative, black = 0
+          for (let i = 0; i < img.data.length; i += 4) {
+            let value = oldData.pixels[Math.floor(i / 4)].vertGrad / scale * 255;
+            img.data[i] = (value >= 0 ? value : 0);
+            img.data[i + 1] = 0;
+            img.data[i + 2] = (value < 0 ? (value * -1) : 0);
+            img.data[i + 3] = 255;
+          }
+          
+          ctx.putImageData(img, 0, 0);
+          
+          await new Promise(r => {
+            setTimeout(r, 1);
+          });
+        }
+      })();
+    </script>
+  </body>
+</html>
